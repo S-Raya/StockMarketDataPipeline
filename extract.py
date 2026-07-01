@@ -10,7 +10,7 @@ parser.add_argument("--daily", help="fetch daily time series data", action="stor
 parser.add_argument("--overview", help="fetch overview data", action="store_true")
 args = parser.parse_args()
 
-time = datetime.now().strftime("%Y_%m_%d_%H%M")
+time = datetime.now().strftime("%Y_%m_%d_%H_%M")
 
 load_dotenv()
 
@@ -43,7 +43,6 @@ def fetch_data(url, param):
     except requests.exceptions.RequestException as error:
         print(f"An error occurred while calling the API: {error}")   
 
-print(args.daily, args.overview)
 
 if (args.overview and args.daily) or (not args.overview and not args.daily):
     fetch_data(url, param1)
