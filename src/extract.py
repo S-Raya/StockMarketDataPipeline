@@ -4,6 +4,7 @@ import json
 from dotenv import load_dotenv
 from datetime import datetime
 import argparse
+from utils import log_to_db
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--daily", help="fetch daily time series data", action="store_true")
@@ -39,8 +40,11 @@ def fetch_data(url, param):
         with open(f"data/raw/data_{param["function"]}_{time}.json", "w", encoding="utf-8") as file:
             json.dump(data, file, indent=4)
         print("Requested URL:", r.url)
+        nProcessed = len(data["Time Series (Daily)"]) if "Time Series (Daily)" in data else 1
+        log_to_db("Extract data", symbol, "Success", nProcessed, 0, 0, None)
 
     except requests.exceptions.RequestException as error:
+        log_to_db("Extract data", symbol, "Failed", 0, 0, 0, str(error))
         print(f"An error occurred while calling the API: {error}")   
 
 

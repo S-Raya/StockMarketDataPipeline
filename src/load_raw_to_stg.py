@@ -3,6 +3,7 @@ from datetime import datetime
 import pyodbc 
 import os
 from dotenv import load_dotenv
+from utils import log_to_db
 load_dotenv()
 import argparse
 
@@ -69,6 +70,7 @@ def load_daily_price_to_staging(data, dt_object):
     try:
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
+        Symbol= data["Meta Data"]["2. Symbol"]
         for date, price in data["Time Series (Daily)"].items():
             Symbol= data["Meta Data"]["2. Symbol"]
             TradeDate= date
@@ -79,13 +81,17 @@ def load_daily_price_to_staging(data, dt_object):
             Volume= price["5. volume"]
             fetched_at= dt_object
             cursor.execute("INSERT INTO staging.stg_daily_price (Symbol, TradeDate, OpenPrice, HighPrice, LowPrice, ClosePrice, Volume, fetched_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", Symbol, TradeDate, OpenPrice, HighPrice, LowPrice, ClosePrice, Volume, fetched_at)
+        
+        log_to_db("Load daily price to staging", Symbol, "Success", len(data["Time Series (Daily)"]), len(data["Time Series (Daily)"]), 0, None)
 
     except pyodbc.Error as e:
+        log_to_db("Load daily price to staging", Symbol, "Failed", 0, 0, 0, str(e))
         print(f"Database error occurred: {e}")
         if conn:
             print("Rolling back transaction...")
             conn.rollback()
     except Exception as e:
+        log_to_db("Load daily price to staging", Symbol, "Failed", 0, 0, 0, str(e))
         print(f"An unexpected error occurred: {e}")
         if conn:
             conn.rollback()
@@ -121,13 +127,16 @@ def load_overview_to_staging(data, dt_object):
         qm = ", ".join(q)
         query = f"INSERT INTO staging.stg_overview ({collumns}) VALUES ({qm})"
         cursor.execute(query,Value)
+        log_to_db("Load overview to staging", data.get("Symbol", "N/A"), "Success", 1, 1, 0, None)
 
     except pyodbc.Error as e:
+        log_to_db("Load overview to staging", data.get("Symbol", "N/A"), "Failed", 0, 0, 0, str(e))
         print(f"Database error occurred: {e}")
         if conn:
             print("Rolling back transaction...")
             conn.rollback()
     except Exception as e:
+        log_to_db("Load overview to staging", data.get("Symbol", "N/A"), "Failed", 0, 0, 0, str(e))
         print(f"An unexpected error occurred: {e}")
         if conn:
             conn.rollback()

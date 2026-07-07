@@ -44,14 +44,21 @@ BEGIN TRY
         FROM staging.stg_overview 
         WHERE Symbol = @Symbol 
         ORDER BY fetched_at DESC
-    COMMIT TRANSACTION    
+
+        DECLARE @nInserted INT = @@ROWCOUNT
+        INSERT INTO log.etl_log (ProcessName, Symbol, Status, nProcessed, nInserted, nSkipped, ErrorMessage)
+        VALUES ('Transform Overview', @Symbol, 'Success', 1, @nInserted, 0, NULL)
+    COMMIT TRANSACTION
+
 END TRY
 BEGIN CATCH
+    DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE()
+    INSERT INTO log.etl_log (ProcessName, Symbol, Status, nProcessed, nInserted, nSkipped, ErrorMessage)
+    VALUES ('Transform Overview', @Symbol, 'Failed', 0, 0, 0, @ErrorMessage)
     IF @@TRANCOUNT > 0
         ROLLBACK TRANSACTION
-
-    DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE()
     RAISERROR(@ErrorMessage, 16, 1)
+    
 END CATCH;  
 GO
 
@@ -90,6 +97,7 @@ BEGIN TRY
         FROM staging.stg_daily_price
         WHERE TRY_CAST(TradeDate AS DATE) NOT IN (SELECT TradeDate FROM warehouse.whs_daily_price WHERE Symbol = @Symbol) AND Symbol = @Symbol
 
+        DECLARE @nInserted INT = @@ROWCOUNT
         -- update the PriceChange, PriceChangePercent, and Moving Averages
         UPDATE w
         SET
@@ -110,13 +118,20 @@ BEGIN TRY
             WHERE Symbol = @Symbol
         ) calc ON w.id = calc.id
         WHERE w.Symbol = @Symbol
+
+        DECLARE @nProcessed INT = (SELECT COUNT(*) FROM staging.stg_daily_price WHERE Symbol = @Symbol)
+        DECLARE @nSkipped INT = @nProcessed - @nInserted
+        INSERT INTO log.etl_log (ProcessName, Symbol, Status, nProcessed, nInserted, nSkipped, ErrorMessage)
+        VALUES ('Transform Daily Price', @Symbol, 'Success', @nProcessed, @nInserted, @nSkipped, NULL)
     COMMIT TRANSACTION
 END TRY
 BEGIN CATCH
+    DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE()
+    INSERT INTO log.etl_log (ProcessName, Symbol, Status, nProcessed, nInserted, nSkipped, ErrorMessage)
+    VALUES ('Transform Daily Price', @Symbol, 'Failed', 0, 0, 0, @ErrorMessage)
     IF @@TRANCOUNT > 0
         ROLLBACK TRANSACTION
 
-    DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE()
     RAISERROR(@ErrorMessage, 16, 1)
 END CATCH;  
 GO
