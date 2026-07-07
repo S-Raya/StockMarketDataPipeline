@@ -9,3 +9,6 @@ IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'warehouse')
     EXEC('CREATE SCHEMA warehouse')
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'log')
+    EXEC('CREATE SCHEMA log')
+GO
