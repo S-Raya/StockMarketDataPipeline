@@ -4,6 +4,7 @@ import json
 from dotenv import load_dotenv
 from datetime import datetime
 import argparse
+import time
 from utils import log_to_db
 
 parser = argparse.ArgumentParser()
@@ -50,6 +51,7 @@ def fetch_data(url, param):
 
 if (args.overview and args.daily) or (not args.overview and not args.daily):
     fetch_data(url, param1)
+    time.sleep(5)
     fetch_data(url, param2)
 elif args.daily:
     fetch_data(url, param1)

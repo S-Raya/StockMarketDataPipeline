@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 import pyodbc 
 import os
+import time
 from dotenv import load_dotenv
 from utils import log_to_db
 load_dotenv()
@@ -150,6 +151,7 @@ def load_overview_to_staging(data, dt_object):
 
 if (args.overview and args.daily) or (not args.overview and not args.daily):
     load_daily_price_to_staging(d1, dt_object1)
+    time.sleep(5)
     load_overview_to_staging(d2, dt_object2)
 elif args.daily:
     load_daily_price_to_staging(d1, dt_object1)
