@@ -8,8 +8,8 @@ load_dotenv()
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--daily", help="fetch daily time series data", action="store_true")
-parser.add_argument("--overview", help="fetch overview data", action="store_true")
+parser.add_argument("--daily", help="load daily time series data", action="store_true")
+parser.add_argument("--overview", help="load overview data", action="store_true")
 args = parser.parse_args()
 
 server=os.getenv("SERVER")
