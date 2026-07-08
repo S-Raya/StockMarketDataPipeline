@@ -5,14 +5,9 @@ import os
 import time
 from dotenv import load_dotenv
 from utils import log_to_db
-load_dotenv()
 import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--daily", help="load daily time series data", action="store_true")
-parser.add_argument("--overview", help="load overview data", action="store_true")
-args = parser.parse_args()
-
+load_dotenv()
 server=os.getenv("SERVER")
 database=os.getenv("DATABASE")
 uid=os.getenv("MSSQL_SA_USERNAME")
@@ -27,12 +22,10 @@ conn_str = (
     r'TrustServerCertificate=yes;'
 )
 
-files = os.listdir("data/raw")
-
 def get_latest_file(file_list):
     if not file_list:
         return None
-    latest_file = max(file_list, key=lambda x: os.path.getmtime(os.path.join("data/raw", x)))
+    latest_file = max(file_list)
     return latest_file
 
 def split_date_from_daily_file(filename):
@@ -59,11 +52,14 @@ def construct_datetime_from_filedate(yy, mo, dd, hh, mm):
     dt_object = datetime.strptime(date_string, format)
     return dt_object
 
+def get_data_and_timestamp():
+    files = os.listdir("data/raw")
+    data_daily = json.load(open(f"data/raw/{get_latest_file([f for f in files if 'data_TIME_SERIES_DAILY_' in f])}", "r", encoding="utf-8"))
+    data_overview = json.load(open(f"data/raw/{get_latest_file([f for f in files if 'data_OVERVIEW_' in f])}", "r", encoding="utf-8"))
+    dt_object_daily = construct_datetime_from_filedate(*split_date_from_daily_file(get_latest_file([f for f in files if 'data_TIME_SERIES_DAILY_' in f])))
+    dt_object_overview = construct_datetime_from_filedate(*split_date_from_overview_file(get_latest_file([f for f in files if 'data_OVERVIEW_' in f])))
 
-d1 = json.load(open(f"data/raw/{get_latest_file([f for f in files if 'data_TIME_SERIES_DAILY_' in f])}", "r", encoding="utf-8"))
-d2 = json.load(open(f"data/raw/{get_latest_file([f for f in files if 'data_OVERVIEW_' in f])}", "r", encoding="utf-8"))
-dt_object1 = construct_datetime_from_filedate(*split_date_from_daily_file(get_latest_file([f for f in files if 'data_TIME_SERIES_DAILY_' in f])))
-dt_object2 = construct_datetime_from_filedate(*split_date_from_overview_file(get_latest_file([f for f in files if 'data_OVERVIEW_' in f])))
+    return data_daily, dt_object_daily, data_overview, dt_object_overview
 
 def load_daily_price_to_staging(data, dt_object):
     conn = None
@@ -149,13 +145,20 @@ def load_overview_to_staging(data, dt_object):
         if conn:
             conn.close()
 
-if (args.overview and args.daily) or (not args.overview and not args.daily):
-    load_daily_price_to_staging(d1, dt_object1)
-    time.sleep(5)
-    load_overview_to_staging(d2, dt_object2)
-elif args.daily:
-    load_daily_price_to_staging(d1, dt_object1)
-elif args.overview:
-    load_overview_to_staging(d2, dt_object2)
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--daily", help="load daily time series data", action="store_true")
+    parser.add_argument("--overview", help="load overview data", action="store_true")
+    args = parser.parse_args()
 
+    data_daily, dt_object_daily, data_overview, dt_object_overview = get_data_and_timestamp()
+
+    if (args.overview and args.daily) or (not args.overview and not args.daily):
+        load_daily_price_to_staging(data_daily, dt_object_daily)
+        time.sleep(5)
+        load_overview_to_staging(data_overview, dt_object_overview)
+    elif args.daily:
+        load_daily_price_to_staging(data_daily, dt_object_daily)
+    elif args.overview:
+        load_overview_to_staging(data_overview, dt_object_overview)
