@@ -6,9 +6,7 @@ flowchart LR
     B2[Extract Overview Data]
     C[Save Raw JSON]
     D[(SQL Server Staging)]
-    E[Cleaning]
-    F[Anomaly Detection]
-    G[Metrics Calculation]
+    E[Transform]
     H[(SQL Server Data Warehouse)]
     I([End])
 
@@ -18,9 +16,7 @@ flowchart LR
     B2 --> C
     C --> D
     D --> E
-    E --> F
-    F --> G
-    G --> H
+    E --> H
     H --> I
 
     B1 -. Log .-> L[(Logging)]
@@ -28,7 +24,5 @@ flowchart LR
     C -. Log .-> L
     D -. Log .-> L
     E -. Log .-> L
-    F -. Log .-> L
-    G -. Log .-> L
     H -. Log .-> L
 ```
