@@ -1,5 +1,5 @@
 services:
-  sqlserver:
+  sqlserver: # Bareng
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sqlserver
     environment:
@@ -9,25 +9,34 @@ services:
       - "1433:1433"
     volumes:
       - sqlserverdata:/var/opt/mssql
+    networks:
+      - airflow_network
 
-  postgres:
+  postgres_source:
     image: postgres:13
     environment:
-      - POSTGRES_USER=airflow
-      - POSTGRES_PASSWORD=airflow
-      - POSTGRES_DB=airflow
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: airflow           # metadata Airflow, bukan default
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_source_data:/var/lib/postgresql/data
     networks:
       - airflow_network
 
   init-airflow: # compose up ini dulu
-    image: apache/airflow:2.9.2
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
     depends_on:
-      - postgres
+      - postgres_source
     environment:
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://myuser:mypassword@postgres_source/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
     volumes:
       - ./airflow:/opt/airflow
+      - .:/opt/airflow/project
     networks:
       - airflow_network
     command: >
@@ -35,47 +44,54 @@ services:
       sleep 10 &&
       rm -f /opt/airflow/airflow-webserver.pid &&
       airflow db init &&
-      airflow users create --username airflow --password password --firstname John --lastname Doe --role Admin --email admin@example.com
+      airflow users create --username airflow --password password --firstname John --lastname Doe --role Admin --email admin@example.com &&
+      airflow connections add 'mssql_stockdb'
+        --conn-type 'mssql'
+        --conn-host 'sqlserver'
+        --conn-schema 'StockMarketDataDB'
+        --conn-login 'sa'
+        --conn-password '${MSSQL_SA_PASSWORD}'
+        --conn-port 1433
       "
 
-  webserver:
-    image: apache/airflow:2.9.2
+  webserver: # Bareng
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
     depends_on:
       - init-airflow
     environment:
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://myuser:mypassword@postgres_source/airflow
       - AIRFLOW__WEBSERVER__SECRET_KEY=secret
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
     volumes:
       - ./airflow:/opt/airflow
+      - .:/opt/airflow/project
     ports:
       - "8080:8080"
     networks:
       - airflow_network
     command: webserver
 
-  scheduler:
-    image: apache/airflow:2.9.2
+  scheduler: # Bareng
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
     depends_on:
       - init-airflow
     environment:
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://myuser:mypassword@postgres_source/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
     volumes:
       - ./airflow:/opt/airflow
+      - .:/opt/airflow/project
     networks:
       - airflow_network
     command: scheduler
-  postgres_source:
-    image: postgres:13
-    environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydatabase
-    ports:
-      - "5432:5432"
+
 volumes:
   sqlserverdata:
+  postgres_source_data:
 
 networks:
   airflow_network:
