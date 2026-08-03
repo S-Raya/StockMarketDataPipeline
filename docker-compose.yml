@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -12,5 +10,73 @@ services:
     volumes:
       - sqlserverdata:/var/opt/mssql
 
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    networks:
+      - airflow_network
+
+  init-airflow: # compose up ini dulu
+    image: apache/airflow:2.9.2
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    volumes:
+      - ./airflow:/opt/airflow
+    networks:
+      - airflow_network
+    command: >
+      bash -c "
+      sleep 10 &&
+      rm -f /opt/airflow/airflow-webserver.pid &&
+      airflow db init &&
+      airflow users create --username airflow --password password --firstname John --lastname Doe --role Admin --email admin@example.com
+      "
+
+  webserver:
+    image: apache/airflow:2.9.2
+    depends_on:
+      - init-airflow
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__WEBSERVER__SECRET_KEY=secret
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    volumes:
+      - ./airflow:/opt/airflow
+    ports:
+      - "8080:8080"
+    networks:
+      - airflow_network
+    command: webserver
+
+  scheduler:
+    image: apache/airflow:2.9.2
+    depends_on:
+      - init-airflow
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    volumes:
+      - ./airflow:/opt/airflow
+    networks:
+      - airflow_network
+    command: scheduler
+  postgres_source:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
 volumes:
   sqlserverdata:
+
+networks:
+  airflow_network:
+    driver: bridge
