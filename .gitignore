@@ -12,3 +12,8 @@ data/raw/*
 # Airflow
 airflow/dags/__pycache__/*
 airflow/logs/*
+airflow/airflow.cfg
+airflow/airflow.db
+airflow/webserver_config.py
+airflow/airflow-webserver.pid
+airflow/unittests.cfg
