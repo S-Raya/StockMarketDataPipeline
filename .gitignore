@@ -1,5 +1,14 @@
+# Environment
 .env
 .vscode
-data/raw/*
 .venv
+
+# Python
 src/__pycache__/*
+
+# Data
+data/raw/*
+
+# Airflow
+airflow/dags/__pycache__/*
+airflow/logs/*
