@@ -1,5 +1,5 @@
 services:
-  sqlserver: # Bareng
+  sqlserver: # compose up 2
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sqlserver
     environment:
@@ -17,7 +17,7 @@ services:
     environment:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: airflow           # metadata Airflow, bukan default
+      POSTGRES_DB: airflow           # Airflow metadata database
     ports:
       - "5432:5432"
     volumes:
@@ -25,12 +25,13 @@ services:
     networks:
       - airflow_network
 
-  init-airflow: # compose up ini dulu
+  init-airflow: # compose up 1
     build:
       context: .
       dockerfile: Dockerfile.airflow
     depends_on:
       - postgres_source
+    restart: "no"
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://myuser:mypassword@postgres_source/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
@@ -44,22 +45,17 @@ services:
       sleep 10 &&
       rm -f /opt/airflow/airflow-webserver.pid &&
       airflow db init &&
-      airflow users create --username airflow --password password --firstname John --lastname Doe --role Admin --email admin@example.com &&
-      airflow connections add 'mssql_stockdb'
-        --conn-type 'mssql'
-        --conn-host 'sqlserver'
-        --conn-schema 'StockMarketDataDB'
-        --conn-login 'sa'
-        --conn-password '${MSSQL_SA_PASSWORD}'
-        --conn-port 1433
+      (airflow users create --username airflow --password password --firstname John --lastname Doe --role Admin --email admin@example.com || echo 'user already exists, skip') &&
+      (airflow connections add 'mssql_stockdb' --conn-type 'mssql' --conn-host 'sqlserver' --conn-schema 'StockMarketDataDB' --conn-login 'sa' --conn-password '${MSSQL_SA_PASSWORD}' --conn-port 1433 || echo 'connection already exists, skip')
       "
 
-  webserver: # Bareng
+  webserver: # compose up 2
     build:
       context: .
       dockerfile: Dockerfile.airflow
     depends_on:
-      - init-airflow
+      init-airflow:
+        condition: service_completed_successfully
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://myuser:mypassword@postgres_source/airflow
       - AIRFLOW__WEBSERVER__SECRET_KEY=secret
@@ -73,12 +69,13 @@ services:
       - airflow_network
     command: webserver
 
-  scheduler: # Bareng
+  scheduler: # compose up 2
     build:
       context: .
       dockerfile: Dockerfile.airflow
     depends_on:
-      - init-airflow
+      init-airflow:
+        condition: service_completed_successfully
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://myuser:mypassword@postgres_source/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
