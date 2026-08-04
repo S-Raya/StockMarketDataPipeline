@@ -53,7 +53,7 @@ if __name__ == "__main__":
     
     if (args.overview and args.daily) or (not args.overview and not args.daily):
         fetch_data(url, param1)
-        time.sleep(5)
+        time.sleep(7)
         fetch_data(url, param2)
     elif args.daily:
         fetch_data(url, param1)
