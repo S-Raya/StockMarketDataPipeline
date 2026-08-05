@@ -6,9 +6,10 @@ from airflow.providers.microsoft.mssql.operators.mssql import MsSqlOperator
 from airflow.utils.task_group import TaskGroup
 import os
 from dotenv import load_dotenv
-load_dotenv()
+
 
 PROJECT_DIR = "/opt/airflow/project"   # Project Path (Airflow Project Volume)
+load_dotenv(os.path.join(PROJECT_DIR, ".env"))
 MSSQL_CONN_ID = "mssql_stockdb"
 SYMBOL = os.getenv("SYMBOL")
 EXTRACT_DELAY_SECONDS = 7
@@ -22,7 +23,7 @@ default_args = {
 }
 
 with DAG(
-    dag_id="stock_market_pipeline5",
+    dag_id="stock_market_pipeline7",
     description="Extract -> Load -> Transform pipeline untuk StockMarketDataPipeline (MSFT)",
     default_args=default_args,
     start_date=datetime(2026, 1, 1),

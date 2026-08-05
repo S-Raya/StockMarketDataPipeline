@@ -79,6 +79,7 @@ services:
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://myuser:mypassword@postgres_source/airflow
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL=30 # Update DAGs every 30 seconds
     volumes:
       - ./airflow:/opt/airflow
       - .:/opt/airflow/project
