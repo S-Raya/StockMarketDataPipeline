@@ -74,5 +74,4 @@ with DAG(
             parameters={"symbol": SYMBOL},
         )
 
-    extract_daily >> load_daily >> transform_daily_price
-    wait >> extract_overview >> load_overview >> transform_overview # Wait before requesting overview to avoid API rate limit issues
+    extract_daily >> wait >> extract_overview >> load_daily >> load_overview >> transform_daily_price >> transform_overview # Wait before requesting overview to avoid API rate limit issues
