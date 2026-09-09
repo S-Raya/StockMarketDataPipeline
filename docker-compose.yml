@@ -58,7 +58,7 @@ services:
         condition: service_completed_successfully
     environment:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://myuser:mypassword@postgres_source/airflow
-      - AIRFLOW__WEBSERVER__SECRET_KEY=secret
+      - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY}
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
     volumes:
       - ./airflow:/opt/airflow
