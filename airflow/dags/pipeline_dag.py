@@ -23,7 +23,7 @@ default_args = {
 }
 
 with DAG(
-    dag_id="stock_market_pipeline7",
+    dag_id="stock_market_pipeline8",
     description="Extract -> Load -> Transform pipeline untuk StockMarketDataPipeline (MSFT)",
     default_args=default_args,
     start_date=datetime(2026, 1, 1),
@@ -74,4 +74,5 @@ with DAG(
             parameters={"symbol": SYMBOL},
         )
 
-    extract_daily >> wait >> extract_overview >> load_daily >> load_overview >> transform_daily_price >> transform_overview # Wait before requesting overview to avoid API rate limit issues
+    extract_daily >> load_daily >> transform_daily_price
+    extract_daily >> wait >> extract_overview >> load_overview >> transform_overview
